@@ -435,7 +435,7 @@ section::after {
 <h1 id="oci-imagevolumes">OCI ImageVolumes</h1>
 <p><strong>Reduce image duplication and network overhead</strong></p>
 <ul>
-<li>Status: <strong>Alpha</strong> in Kubernetes 1.34</li>
+<li>Status: <strong>Beta</strong> in Kubernetes 1.34</li>
 <li>KEP: <a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/4639-oci-volume-source">4639</a></li>
 </ul>
 </section>
@@ -453,19 +453,24 @@ section::after {
 }
 ;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
 <h1 id="the-problem-before-3">The Problem Before</h1>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># Traditional approach: image per container</span>
-<span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-Dockerfile"><span class="hljs-comment"># <span class="hljs-doctag">TODO:</span> here</span>
+<span class="hljs-keyword">FROM</span> XXX: as model
+
+<span class="hljs-keyword">FROM</span> myapp:latest AS app
+
+<span class="hljs-comment">#<span class="hljs-doctag">TODO:</span> </span>
+<span class="hljs-comment"># enrich my app with LLM model</span>
+<span class="hljs-keyword">ADD</span><span class="language-bash"> --from=model model-file /mnt/model-file</span>
+</code></pre>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-bash">docker build -t myapp:latest-with-model
+</code></pre>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span>
 <span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span>
 <span class="hljs-attr">spec:</span>
   <span class="hljs-attr">containers:</span>
-  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">app1</span>
-    <span class="hljs-attr">image:</span> <span class="hljs-string">myregistry/large-base:v1</span>  <span class="hljs-comment"># 2GB download</span>
-  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">app2</span>
-    <span class="hljs-attr">image:</span> <span class="hljs-string">myregistry/large-base:v2</span>  <span class="hljs-comment"># Another 2GB download</span>
-  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">sidecar</span>
-    <span class="hljs-attr">image:</span> <span class="hljs-string">myregistry/large-base:v1</span>  <span class="hljs-comment"># Duplicate 2GB download</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">my-fancy-model-including-app</span>
+    <span class="hljs-attr">image:</span> <span class="hljs-string">myapp:latest-with-model</span>
 </code></pre>
-<p><strong>Issues:</strong> Storage waste, slow startup, network bandwidth consumption</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
@@ -480,29 +485,74 @@ section::after {
   content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
 }
 ;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
-<h1 id="oci-imagevolumes-in-action">OCI ImageVolumes in Action</h1>
+<h1 id="the-problem-before-4">The Problem Before</h1>
+<p>Container design - either lightweight + limited:</p>
+<ul>
+<li>CloudNativePG</li>
+</ul>
+<p>Or bulky:</p>
+<ul>
+<li>StackGres (100+ extensions)</li>
+</ul>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="21" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+  align-content: start;
+}
+section::after {
+  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
+}
+" lang="en-US" class="gaia" style="--class:gaia;--theme:gaia;--lang:en-US;--style:section {
+  align-content: start;
+}
+section::after {
+  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
+}
+;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
+<h1 id="the-problem-before-5">The Problem Before</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span>
+<span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span>
+<span class="hljs-attr">spec:</span>
+  <span class="hljs-attr">initContainers:</span>
+    <span class="hljs-comment"># download the dependency here</span>
+  <span class="hljs-attr">containers:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">my-fancy-model-including-app</span>
+    <span class="hljs-attr">volumeMounts:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">model-file</span>
+      <span class="hljs-attr">mountPath:</span> <span class="hljs-string">/mnt/</span>
+      <span class="hljs-attr">readOnly:</span> <span class="hljs-literal">true</span>
+</code></pre>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="22" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+  align-content: start;
+}
+section::after {
+  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
+}
+" lang="en-US" class="gaia" style="--class:gaia;--theme:gaia;--lang:en-US;--style:section {
+  align-content: start;
+}
+section::after {
+  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
+}
+;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
+<h1 id="and-now-4">And Now</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span>
 <span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span>
 <span class="hljs-attr">spec:</span>
   <span class="hljs-attr">volumes:</span>
-  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">shared-image</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">model-image</span>
     <span class="hljs-attr">image:</span>
       <span class="hljs-attr">reference:</span> <span class="hljs-string">myregistry/large-base:v1</span>
       <span class="hljs-attr">pullPolicy:</span> <span class="hljs-string">IfNotPresent</span>
   <span class="hljs-attr">containers:</span>
-  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">app1</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">my-fancy-model-including-app</span>
     <span class="hljs-attr">volumeMounts:</span>
-    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">shared-image</span>
-      <span class="hljs-attr">mountPath:</span> <span class="hljs-string">/shared-libs</span>
-      <span class="hljs-attr">readOnly:</span> <span class="hljs-literal">true</span>
-  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">app2</span>
-    <span class="hljs-attr">volumeMounts:</span>
-    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">shared-image</span>
-      <span class="hljs-attr">mountPath:</span> <span class="hljs-string">/shared-libs</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">model-file</span>
+      <span class="hljs-attr">mountPath:</span> <span class="hljs-string">/mnt/</span>
       <span class="hljs-attr">readOnly:</span> <span class="hljs-literal">true</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="21" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {
@@ -519,67 +569,10 @@ section::after {
 <p><strong>Use Cases:</strong></p>
 <ul>
 <li><strong>ML Workloads</strong>: Share large model files across containers</li>
-<li><strong>Microservices</strong>: Common base libraries and dependencies</li>
-<li><strong>Development</strong>: Faster iteration with cached dependencies</li>
+<li><strong>Microservices</strong>: Common base files and dependencies</li>
+<li><strong>Addons/Extensions</strong>: Provide as regular image</li>
 <li><strong>Edge Computing</strong>: Minimize bandwidth usage</li>
 </ul>
-<p><strong>Benefits:</strong></p>
-<ul>
-<li>Reduced storage consumption</li>
-<li>Faster pod startup times</li>
-<li>Lower network bandwidth usage</li>
-<li>Simplified dependency management</li>
-</ul>
-</section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="22" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
-  align-content: start;
-}
-section::after {
-  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
-}
-" lang="en-US" class="gaia" style="--class:gaia;--theme:gaia;--lang:en-US;--style:section {
-  align-content: start;
-}
-section::after {
-  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
-}
-;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
-<h1 id="swap-support">SWAP Support</h1>
-<p><strong>Handle memory spikes with flexible memory management</strong></p>
-<ul>
-<li>Status: <strong>Beta</strong> in Kubernetes 1.34 (Burstable QoS only)</li>
-<li>Next: Enhanced controls and monitoring in 1.35</li>
-<li>KEP: <a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/2400-node-swap">2400</a></li>
-</ul>
-</section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="23" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
-  align-content: start;
-}
-section::after {
-  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
-}
-" lang="en-US" class="gaia" style="--class:gaia;--theme:gaia;--lang:en-US;--style:section {
-  align-content: start;
-}
-section::after {
-  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
-}
-;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
-<h1 id="the-problem-before-4">The Problem Before</h1>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># Java app with heavy startup memory usage</span>
-<span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span>
-<span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span>
-<span class="hljs-attr">spec:</span>
-  <span class="hljs-attr">containers:</span>
-  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">java-app</span>
-    <span class="hljs-attr">image:</span> <span class="hljs-string">openjdk:11</span>
-    <span class="hljs-attr">resources:</span>
-      <span class="hljs-attr">requests:</span>
-        <span class="hljs-attr">memory:</span> <span class="hljs-string">&quot;4Gi&quot;</span>  <span class="hljs-comment"># Must provision for peak startup</span>
-      <span class="hljs-attr">limits:</span>
-        <span class="hljs-attr">memory:</span> <span class="hljs-string">&quot;4Gi&quot;</span>  <span class="hljs-comment"># Wastes memory during normal operation</span>
-</code></pre>
-<p><strong>Issues:</strong> Over-provisioning, OOMKilled during startup, resource waste</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="24" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
@@ -594,19 +587,50 @@ section::after {
   content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
 }
 ;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
-<h1 id="swap-support-in-action">SWAP Support in Action</h1>
-<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># Node configuration</span>
-<span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span>
-<span class="hljs-attr">kind:</span> <span class="hljs-string">Node</span>
-<span class="hljs-attr">metadata:</span>
-  <span class="hljs-attr">annotations:</span>
-    <span class="hljs-attr">node.alpha.kubernetes.io/swap-behavior:</span> <span class="hljs-string">&quot;LimitedSwap&quot;</span>
-<span class="hljs-attr">spec:</span>
-  <span class="hljs-attr">capacity:</span>
-    <span class="hljs-attr">memory:</span> <span class="hljs-string">&quot;8Gi&quot;</span>
-    <span class="hljs-attr">swap:</span> <span class="hljs-string">&quot;2Gi&quot;</span>
+<h1 id="node-swap-support">Node SWAP Support</h1>
+<p><strong>Handle memory spikes with flexible memory management</strong></p>
+<ul>
+<li>Status: <strong>Beta</strong> in Kubernetes 1.34 (Burstable QoS only)</li>
+<li>Next: Enhanced controls and monitoring in 1.35</li>
+<li>KEP: <a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/2400-node-swap">2400</a></li>
+</ul>
+<p>(Off by default)</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="25" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+  align-content: start;
+}
+section::after {
+  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
+}
+" lang="en-US" class="gaia" style="--class:gaia;--theme:gaia;--lang:en-US;--style:section {
+  align-content: start;
+}
+section::after {
+  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
+}
+;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
+<h1 id="the-problem-before-6">The Problem Before</h1>
+<p>No SWAP support.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="26" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+  align-content: start;
+}
+section::after {
+  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
+}
+" lang="en-US" class="gaia" style="--class:gaia;--theme:gaia;--lang:en-US;--style:section {
+  align-content: start;
+}
+section::after {
+  content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
+}
+;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
+<h1 id="and-now-5">And Now</h1>
+<pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># this fragment goes into the kubelet&#x27;s configuration file</span>
+<span class="hljs-attr">memorySwap:</span>
+  <span class="hljs-attr">swapBehavior:</span> <span class="hljs-string">LimitedSwap</span>
 <span class="hljs-meta">---</span>
-<span class="hljs-comment"># Pod with burstable QoS</span>
+<span class="hljs-comment"># Only non-high-priority Pods under the Burstable QoS tier are permitted to use swap.</span>
 <span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span>
 <span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span>
 <span class="hljs-attr">spec:</span>
@@ -615,12 +639,12 @@ section::after {
     <span class="hljs-attr">image:</span> <span class="hljs-string">openjdk:11</span>
     <span class="hljs-attr">resources:</span>
       <span class="hljs-attr">requests:</span>
-        <span class="hljs-attr">memory:</span> <span class="hljs-string">&quot;2Gi&quot;</span>  <span class="hljs-comment"># Normal operation needs</span>
+        <span class="hljs-attr">memory:</span> <span class="hljs-string">&quot;2Gi&quot;</span>
       <span class="hljs-attr">limits:</span>
-        <span class="hljs-attr">memory:</span> <span class="hljs-string">&quot;4Gi&quot;</span>  <span class="hljs-comment"># Can burst with swap</span>
+        <span class="hljs-attr">memory:</span> <span class="hljs-string">&quot;4Gi&quot;</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="25" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="27" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {
@@ -636,20 +660,12 @@ section::after {
 <h1 id="why-swap-support-matters">Why SWAP Support Matters</h1>
 <p><strong>Use Cases:</strong></p>
 <ul>
-<li><strong>Java Applications</strong>: Handle JVM startup memory spikes</li>
-<li><strong>Machine Learning</strong>: Training jobs with variable memory needs</li>
-<li><strong>Batch Processing</strong>: Memory-intensive jobs without over-provisioning</li>
-<li><strong>Development</strong>: More flexible resource allocation</li>
-</ul>
-<p><strong>Benefits:</strong></p>
-<ul>
-<li>Reduce memory over-provisioning</li>
-<li>Prevent OOMKilled during startup</li>
-<li>Better resource utilization</li>
-<li>Cost optimization</li>
+<li><strong>Applications with Dormant Memory</strong>: Java, batch operations, ...</li>
+<li><strong>Cost optimization</strong></li>
+<li><strong>You are in charge</strong> and responsible for your choices</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="26" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="28" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {
@@ -670,7 +686,7 @@ section::after {
 <li>KEP: <a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-apps/3329-retriable-and-counting-job-failures">3329</a></li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="27" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="29" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {
@@ -683,7 +699,7 @@ section::after {
   content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
 }
 ;" data-transition-back="{&quot;name&quot;:&quot;none&quot;}" data-transition="{&quot;name&quot;:&quot;none&quot;}">
-<h1 id="the-problem-before-5">The Problem Before</h1>
+<h1 id="the-problem-before-7">The Problem Before</h1>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code class="language-yaml"><span class="hljs-comment"># Simple job with basic retry logic</span>
 <span class="hljs-attr">apiVersion:</span> <span class="hljs-string">batch/v1</span>
 <span class="hljs-attr">kind:</span> <span class="hljs-string">Job</span>
@@ -698,7 +714,7 @@ section::after {
 </code></pre>
 <p><strong>Issues:</strong> All-or-nothing retry, no failure categorization, poor observability</p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="28" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="30" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {
@@ -732,7 +748,7 @@ section::after {
       <span class="hljs-attr">succeededCount:</span> <span class="hljs-number">8</span>  <span class="hljs-comment"># 80% success rate is enough</span>
 </code></pre>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="29" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="31" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {
@@ -761,7 +777,7 @@ section::after {
 <li>Improved job completion rates</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="30" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="32" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {
@@ -793,7 +809,7 @@ section::after {
 </li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="31" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="33" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {
@@ -813,7 +829,7 @@ section::after {
 <p><strong>Operational complexity</strong> is being reduced through automation</p>
 <p><strong>Start experimenting</strong> with these features in your development environments!</p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="32" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="34" data-class="gaia" data-theme="gaia" data-lang="en-US" data-style="section {
   align-content: start;
 }
 section::after {

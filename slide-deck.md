@@ -260,52 +260,85 @@ spec:
 # OCI ImageVolumes
 
 **Reduce image duplication and network overhead**
-- Status: **Alpha** in Kubernetes 1.34
+- Status: **Beta** in Kubernetes 1.34
 - KEP: [4639](https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/4639-oci-volume-source)
 
 ---
 
 # The Problem Before
 
+```Dockerfile
+# TODO: here
+FROM XXX: as model
+
+FROM myapp:latest AS app
+
+#TODO: 
+# enrich my app with LLM model
+ADD --from=model model-file /mnt/model-file
+```
+
+```bash
+docker build -t myapp:latest-with-model
+```
+
 ```yaml
-# Traditional approach: image per container
 apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: app1
-    image: myregistry/large-base:v1  # 2GB download
-  - name: app2
-    image: myregistry/large-base:v2  # Another 2GB download
-  - name: sidecar
-    image: myregistry/large-base:v1  # Duplicate 2GB download
+  - name: my-fancy-model-including-app
+    image: myapp:latest-with-model
 ```
-
-**Issues:** Storage waste, slow startup, network bandwidth consumption
 
 ---
 
-# OCI ImageVolumes in Action
+# The Problem Before
+
+Container design - either lightweight + limited:
+
+- CloudNativePG
+
+Or bulky:
+
+- StackGres (100+ extensions)
+
+---
+
+# The Problem Before
+
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  initContainers:
+    # download the dependency here
+  containers:
+  - name: my-fancy-model-including-app
+    volumeMounts:
+    - name: model-file
+      mountPath: /mnt/
+      readOnly: true
+```
+
+---
+
+# And Now
 
 ```yaml
 apiVersion: v1
 kind: Pod
 spec:
   volumes:
-  - name: shared-image
+  - name: model-image
     image:
       reference: myregistry/large-base:v1
       pullPolicy: IfNotPresent
   containers:
-  - name: app1
+  - name: my-fancy-model-including-app
     volumeMounts:
-    - name: shared-image
-      mountPath: /shared-libs
-      readOnly: true
-  - name: app2
-    volumeMounts:
-    - name: shared-image
-      mountPath: /shared-libs
+    - name: model-file
+      mountPath: /mnt/
       readOnly: true
 ```
 
@@ -315,31 +348,37 @@ spec:
 
 **Use Cases:**
 - **ML Workloads**: Share large model files across containers
-- **Microservices**: Common base libraries and dependencies
-- **Development**: Faster iteration with cached dependencies
+- **Microservices**: Common base files and dependencies
+- **Addons/Extensions**: Provide as regular image
 - **Edge Computing**: Minimize bandwidth usage
-
-**Benefits:**
-- Reduced storage consumption
-- Faster pod startup times
-- Lower network bandwidth usage
-- Simplified dependency management
 
 ---
 
-# SWAP Support
+# Node SWAP Support
 
 **Handle memory spikes with flexible memory management**
 - Status: **Beta** in Kubernetes 1.34 (Burstable QoS only)
 - Next: Enhanced controls and monitoring in 1.35
 - KEP: [2400](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/2400-node-swap)
 
+(Off by default)
+
 ---
 
 # The Problem Before
 
+No SWAP support.
+
+---
+
+# And Now
+
 ```yaml
-# Java app with heavy startup memory usage
+# this fragment goes into the kubelet's configuration file
+memorySwap:
+  swapBehavior: LimitedSwap
+---
+# Only non-high-priority Pods under the Burstable QoS tier are permitted to use swap.
 apiVersion: v1
 kind: Pod
 spec:
@@ -348,41 +387,9 @@ spec:
     image: openjdk:11
     resources:
       requests:
-        memory: "4Gi"  # Must provision for peak startup
+        memory: "2Gi"
       limits:
-        memory: "4Gi"  # Wastes memory during normal operation
-```
-
-**Issues:** Over-provisioning, OOMKilled during startup, resource waste
-
----
-
-# SWAP Support in Action
-
-```yaml
-# Node configuration
-apiVersion: v1
-kind: Node
-metadata:
-  annotations:
-    node.alpha.kubernetes.io/swap-behavior: "LimitedSwap"
-spec:
-  capacity:
-    memory: "8Gi"
-    swap: "2Gi"
----
-# Pod with burstable QoS
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: java-app
-    image: openjdk:11
-    resources:
-      requests:
-        memory: "2Gi"  # Normal operation needs
-      limits:
-        memory: "4Gi"  # Can burst with swap
+        memory: "4Gi"
 ```
 
 ---
@@ -390,16 +397,9 @@ spec:
 # Why SWAP Support Matters
 
 **Use Cases:**
-- **Java Applications**: Handle JVM startup memory spikes
-- **Machine Learning**: Training jobs with variable memory needs
-- **Batch Processing**: Memory-intensive jobs without over-provisioning
-- **Development**: More flexible resource allocation
-
-**Benefits:**
-- Reduce memory over-provisioning
-- Prevent OOMKilled during startup
-- Better resource utilization
-- Cost optimization
+- **Applications with Dormant Memory**: Java, batch operations, ...
+- **Cost optimization**
+- **You are in charge** and responsible for your choices
 
 ---
 
