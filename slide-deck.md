@@ -1,9 +1,10 @@
 ---
 marp: true
-theme: copernicus
-header: 'The Gems of Kubernetes\' Latest Features'
-footer: 'David Pech @ Wrike | TechMeetup Conference 2025'
-paginate: true
+theme: gaia
+#header: The Gems of Kubernetes' Latest Features
+#footer: David Pech @ Wrike | TechMeetup Conference 2025
+class: [gaia]
+#paginate: true
 lang: en-US
 transition: none
 style: |
@@ -16,13 +17,20 @@ style: |
 
 ---
 
+TODO: nektere slidy precuhuji
+
 # The Gems of Kubernetes' Latest Features
 
-TODO: about
-**David Pech**
-*@ Wrike*
+![Intro](./intro.png)
 
-TODO: indiana jones image?
+---
+
+# David Pech
+
+TODO: ksicht, format
+![Wrike](./wrike.png)
+![Sestra Emmy](./emmy.png)
+![Golden Kubestronaut](./golden-kubestronaut.png)
 
 ---
 
@@ -46,7 +54,6 @@ TODO: indiana jones image?
 # The Problem Before
 
 ```yaml
-# Traditional approach: restart required
 apiVersion: v1
 kind: Pod
 metadata:
@@ -56,17 +63,14 @@ spec:
   - name: app
     image: my-app:v1
     resources:
-      requests:
-        memory: "1Gi"
-        cpu: "500m"
       limits:
-        memory: "2Gi" # <--
-        cpu: "1000m" # <--
+        memory: "2Gi" # <-- restart
+        cpu: "1000m" # <-- restart
 ```
 
 ---
 
-# Online Pod Resizing in Action
+# And Now
 
 ```yaml
 apiVersion: v1
@@ -78,18 +82,12 @@ spec:
   - name: app
     image: my-app:v1
     resources:
-      requests:
-        memory: "1Gi"
-        cpu: "500m"
       limits:
         memory: "4Gi" # CHANGED
         cpu: "2000m" # CHANGED
-    # Enable resize policy
     resizePolicy:
-    - resourceName: memory
-      restartPolicy: NotRequired
-    - resourceName: cpu
-      restartPolicy: NotRequired
+    - { resourceName: memory, restartPolicy: NotRequired }
+    - { resourceName: cpu, restartPolicy: NotRequired }
 ```
 
 ---
@@ -97,10 +95,6 @@ spec:
 # Why Online Pod Resizing Matters
 
 **Use Cases:**
-- **Databases**: Scale memory up for heavy query periods
-- **Auto-scaling**: Faster response to load changes
-
-**Benefits:**
 - **Databases**: Scale memory up for heavy query periods
 - **Auto-scaling**: Faster response to load changes
 
@@ -113,10 +107,9 @@ spec:
 
 # Pod-level Resource Allocation
 
-**Granular control with per-pod resource constraints**
-- Status: **Beta** in Kubernetes 1.34
-- Next: TODO
-- KEP: TODO
+**Simplify with per-pod resource constraints**
+- Status: **Beta** since Kubernetes 1.34
+- KEP: [2837](https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/2837-pod-level-resource-spec/README.md)
 
 ---
 
@@ -140,7 +133,7 @@ spec:
         memory: "4Gi"
   - name: exporter
     image: postgres_exporter
-    resources:
+    resources: # <-- ???
       requests:
         cpu: "20m"
         memory: "4Mi"
@@ -149,11 +142,9 @@ spec:
         memory: "40Mi"
 ```
 
-**Issues:** Waste, guessing the limits
-
 ---
 
-# Pod-level Resource Allocation in Action
+# And Now
 
 ```yaml
 apiVersion: v1
@@ -161,7 +152,7 @@ kind: Pod
 metadata:
   name: database-pod
 spec:
-  resources:
+  resources: # Pod-level definition
     requests:
       cpu: "2000m"
       memory: "4Gi"
@@ -177,20 +168,15 @@ spec:
 
 ---
 
-# Why Pod-level Resource Allocation Matters
+# Why Pod-level Allocation Matters
 
 **Use Cases:**
 - Sidecars
 - (Uneven containers)
 
-**Benefits:**
-- Easier to understand
-- Less waste
-- QoS class
+**Benefits:** Easier to understand, Less waste, QoS class
 
-**But:**
-- Some tooling not ready yet
-- No in-place resize
+**But:** Some tooling not ready yet, No in-place resize
 
 ---
 
@@ -198,7 +184,7 @@ spec:
 
 **Simplified backup and restore across multiple volumes**
 - Status: VolumeSnapshots **Stable**, VolumeGroupSnapshot **Beta** in 1.34
-- Next: VolumeGroupSnapshot moving to **Stable** in 1.35
+- Next: VolumeGroupSnapshot moving to **Stable** in 1.35 (?)
 - KEP: [3476](https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/3476-volume-group-snapshot)
 
 ---
@@ -215,13 +201,12 @@ kubectl cp mysql-pod:backup.sql ./local-backup.sql
 # Manual restore process
 ```
 
-**Issues:** Manual coordination, inconsistent snapshots, complex restore
-
 ---
 
-# VolumeSnapshots in Action
+# And Now
 
 ```yaml
+# Snapshot for single PVC
 apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshot
 metadata:
@@ -230,9 +215,16 @@ spec:
   volumeSnapshotClassName: csi-snapshotter
   source:
     persistentVolumeClaimName: mysql-pvc
-# real data managed by VolumeSnapshotContent
+# --> real data managed by VolumeSnapshotContent
+```
+
 ---
-apiVersion: groupsnapshot.storage.k8s.io/v1alpha1
+
+# And Now
+
+```yaml
+# Multiple PVCs at the same time (multiple "mounts")
+apiVersion: groupsnapshot.storage.k8s.io/v1beta1
 kind: VolumeGroupSnapshot
 metadata:
   name: app-group-snapshot
@@ -242,12 +234,19 @@ spec:
     selector:
       matchLabels:
         app: database-cluster
-# generates VolumeSnapshots
+# --> generates VolumeGroupSnapshotContent
 ```
 
 ---
 
-TODO: Bartolini 
+# Why VolumeSnapshots Matter
+
+![benchmark.png height:400px width:1000px](./benchmark.png)
+
+[Source (Kubecon NA, Chicago)](https://kccncna2023.sched.com/event/1R2ml/disaster-recovery-with-very-large-postgres-databases-gabriele-bartolini-edb-michelle-au-google)
+
+---
+
 # Why VolumeSnapshots Matter
 
 **Use Cases:**
@@ -256,19 +255,12 @@ TODO: Bartolini
 - **Development/Testing**: Clone production data safely
 - **Multi-volume Applications**: Coordinated snapshots across volumes
 
-**Benefits:**
-- Application-consistent backups
-- Fast restore operations
-- Automated snapshot scheduling
-- Cross-volume coordination
-
 ---
 
 # OCI ImageVolumes
 
 **Reduce image duplication and network overhead**
 - Status: **Alpha** in Kubernetes 1.34
-- Next: Moving to **Beta** with enhanced features in 1.35
 - KEP: [4639](https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/4639-oci-volume-source)
 
 ---
@@ -497,13 +489,13 @@ spec:
 
 # Key Takeaways
 
-✅ **Kubernetes is quietly evolving** with powerful new capabilities
+ **Kubernetes is quietly evolving** with powerful new capabilities
 
-✅ **Stateful workloads** are becoming first-class citizens
+ **Stateful workloads** are becoming first-class citizens
 
-✅ **Resource management** is getting more sophisticated
+ **Resource management** is getting more sophisticated
 
-✅ **Operational complexity** is being reduced through automation
+ **Operational complexity** is being reduced through automation
 
 **Start experimenting** with these features in your development environments!
 
@@ -519,4 +511,4 @@ spec:
 **Slides:** Available at this repository
 **Contact:** Connect on LinkedIn or at the conference
 
-*Let's bring more workloads to Kubernetes! 🚀*
+*Let's bring more workloads to Kubernetes! *
