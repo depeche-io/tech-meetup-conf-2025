@@ -406,16 +406,15 @@ spec:
 # Job Success and Failure Policies
 
 **Better job management with fine-grained control**
-- Status: **Stable** in Kubernetes 1.34
+- Status: both **Stable** in Kubernetes 1.34
 - Next: Enhanced observability features in 1.35
-- KEP: [3329](https://github.com/kubernetes/enhancements/tree/master/keps/sig-apps/3329-retriable-and-counting-job-failures)
+- KEP: 3329 (failure), 3998 (success)
 
 ---
 
 # The Problem Before
 
 ```yaml
-# Simple job with basic retry logic
 apiVersion: batch/v1
 kind: Job
 spec:
@@ -428,11 +427,9 @@ spec:
       restartPolicy: Never
 ```
 
-**Issues:** All-or-nothing retry, no failure categorization, poor observability
-
 ---
 
-# Job Success and Failure Policies in Action
+# And Now (podFailurePolicy)
 
 ```yaml
 apiVersion: batch/v1
@@ -449,15 +446,30 @@ spec:
     - action: Ignore
       onPodConditions:
       - type: DisruptionTarget  # Node maintenance - retry
+```
+
+TODO: validate YAML
+
+---
+
+# And Now (jobSuccessPolicy)
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+spec:
+  backoffLimit: 5
   successPolicy:
     rules:
     - succeededIndexes: "0-9"
       succeededCount: 8  # 80% success rate is enough
 ```
 
+TODO: validate YAML
+
 ---
 
-# Why Job Success and Failure Policies Matter
+# Why Job Policies Matter
 
 **Use Cases:**
 - **Data Processing**: Skip corrupted data, continue with rest
@@ -465,11 +477,7 @@ spec:
 - **ETL Pipelines**: Categorize transient vs permanent failures
 - **Batch Analytics**: Partial success scenarios
 
-**Benefits:**
-- Intelligent failure handling
-- Reduced unnecessary retries
-- Better resource utilization
-- Improved job completion rates
+So your jobs don't need to be idempotent.
 
 ---
 
@@ -477,38 +485,23 @@ spec:
 
 **Upcoming features to watch:**
 
-- **Gang Scheduling** - Coordinate scheduling of related pods
-  - KEP: [2716](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/2716-pod-group-api)
-  - Status: Alpha development for 1.35
-
-- **Node Log Query** - Query node logs through API
-  - KEP: [3521](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/3521-node-log-query)
-  - Status: Moving to Beta in 1.35
-
----
-
-# Key Takeaways
-
- **Kubernetes is quietly evolving** with powerful new capabilities
-
- **Stateful workloads** are becoming first-class citizens
-
- **Resource management** is getting more sophisticated
-
- **Operational complexity** is being reduced through automation
-
-**Start experimenting** with these features in your development environments!
+- **Gang Scheduling** - Coordinate scheduling of related pods ("PodGroup")
+  - KEP: [4671](https://github.com/kubernetes/enhancements/issues/4671)
+  - Status: Alpha development for 1.35 (?)
 
 ---
 
 # Thank You!
 
+TODO: ???
+
 **Questions?**
 
 **David Pech**
-*Solution Architect @ Wrike*
 
-**Slides:** Available at this repository
+**Slides:** TODO
+
+
 **Contact:** Connect on LinkedIn or at the conference
 
 *Let's bring more workloads to Kubernetes! *
