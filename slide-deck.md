@@ -17,20 +17,17 @@ style: |
 
 ---
 
-TODO: nektere slidy precuhuji
-
 # The Gems of Kubernetes' Latest Features
 
-![Intro](./intro.png)
+![bg right:50% w:600](./intro.png)
 
 ---
 
 # David Pech
 
-TODO: ksicht, format
-![Wrike](./wrike.png)
-![Sestra Emmy](./emmy.png)
-![Golden Kubestronaut](./golden-kubestronaut.png)
+![w:300](./david.jpg)
+![bg right w:300](./wrike.png)
+![bg right w:300](./golden-kubestronaut.png)
 
 ---
 
@@ -46,7 +43,6 @@ TODO: ksicht, format
 
 **In-place vertical scaling without restarts**
 - Status: **Beta** in Kubernetes 1.34
-- Next: Moving toward **Stable** in 1.35 TODO
 - KEP: [1287](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/1287-in-place-update-pod-resources)
 
 ---
@@ -70,7 +66,7 @@ spec:
 
 ---
 
-# And Now
+<!-- # And Now -->
 
 ```yaml
 apiVersion: v1
@@ -113,7 +109,7 @@ spec:
 
 ---
 
-# The Problem Before
+<!-- # The Problem Before -->
 
 ```yaml
 apiVersion: v1
@@ -133,7 +129,7 @@ spec:
         memory: "4Gi"
   - name: exporter
     image: postgres_exporter
-    resources: # <-- ???
+    resources: # <-- ??? WHAT TO PUT HERE?
       requests:
         cpu: "20m"
         memory: "4Mi"
@@ -144,7 +140,7 @@ spec:
 
 ---
 
-# And Now
+<!-- # And Now -->
 
 ```yaml
 apiVersion: v1
@@ -152,7 +148,7 @@ kind: Pod
 metadata:
   name: database-pod
 spec:
-  resources: # Pod-level definition
+  resources: # Pod-level definition, shared between containers
     requests:
       cpu: "2000m"
       memory: "4Gi"
@@ -184,7 +180,6 @@ spec:
 
 **Simplified backup and restore across multiple volumes**
 - Status: VolumeSnapshots **Stable**, VolumeGroupSnapshot **Beta** in 1.34
-- Next: VolumeGroupSnapshot moving to **Stable** in 1.35 (?)
 - KEP: [3476](https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/3476-volume-group-snapshot)
 
 ---
@@ -224,7 +219,7 @@ spec:
 
 ```yaml
 # Multiple PVCs at the same time (multiple "mounts")
-apiVersion: groupsnapshot.storage.k8s.io/v1beta1
+apiVersion: groupsnapshot.storage.k8s.io/v1beta2
 kind: VolumeGroupSnapshot
 metadata:
   name: app-group-snapshot
@@ -261,26 +256,28 @@ spec:
 
 **Reduce image duplication and network overhead**
 - Status: **Beta** in Kubernetes 1.34
-- KEP: [4639](https://github.com/kubernetes/enhancements/tree/master/keps/sig-storage/4639-oci-volume-source)
+- KEP: [4639](https://github.com/kubernetes/enhancements/issues/4639)
 
 ---
 
 # The Problem Before
 
 ```Dockerfile
-# TODO: here
-FROM XXX: as model
+FROM ai/gemma3:latest as model
 
 FROM myapp:latest AS app
 
-#TODO: 
-# enrich my app with LLM model
+# Copy model files
 ADD --from=model model-file /mnt/model-file
 ```
 
 ```bash
 docker build -t myapp:latest-with-model
 ```
+
+---
+
+# The Problem Before
 
 ```yaml
 apiVersion: v1
@@ -407,7 +404,6 @@ spec:
 
 **Better job management with fine-grained control**
 - Status: both **Stable** in Kubernetes 1.34
-- Next: Enhanced observability features in 1.35
 - KEP: 3329 (failure), 3998 (success)
 
 ---
@@ -448,8 +444,6 @@ spec:
       - type: DisruptionTarget  # Node maintenance - retry
 ```
 
-TODO: validate YAML
-
 ---
 
 # And Now (jobSuccessPolicy)
@@ -464,8 +458,6 @@ spec:
     - succeededIndexes: "0-9"
       succeededCount: 8  # 80% success rate is enough
 ```
-
-TODO: validate YAML
 
 ---
 
@@ -491,17 +483,11 @@ So your jobs don't need to be idempotent.
 
 ---
 
+
+<!-- TODO: link -->
+
 # Thank You!
 
-TODO: ???
+*Let's bring more workloads to Kubernetes!*
 
 **Questions?**
-
-**David Pech**
-
-**Slides:** TODO
-
-
-**Contact:** Connect on LinkedIn or at the conference
-
-*Let's bring more workloads to Kubernetes! *
