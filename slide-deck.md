@@ -19,6 +19,9 @@ style: |
 
 # The Gems of Kubernetes' Latest Features
 
+David Pech
+2025
+
 ![bg right:50% w:600](./intro.png)
 
 ---
@@ -176,7 +179,7 @@ spec:
 
 ---
 
-# VolumeSnapshots & VolumeGroupSnapshot
+# VolumeSnapshots & VolumeGroupSnapshots
 
 **Simplified backup and restore across multiple volumes**
 - Status: VolumeSnapshots **Stable**, VolumeGroupSnapshot **Beta** in 1.34
@@ -219,7 +222,7 @@ spec:
 
 ```yaml
 # Multiple PVCs at the same time (multiple "mounts")
-apiVersion: groupsnapshot.storage.k8s.io/v1beta2
+apiVersion: groupsnapshot.storage.k8s.io/v1beta1
 kind: VolumeGroupSnapshot
 metadata:
   name: app-group-snapshot
@@ -282,6 +285,8 @@ docker build -t myapp:latest-with-model
 ```yaml
 apiVersion: v1
 kind: Pod
+metadata:
+  name: my-fancy-app
 spec:
   containers:
   - name: my-fancy-model-including-app
@@ -322,8 +327,6 @@ spec:
 ```
 
 ---
-
-# And Now
 
 ```yaml
 apiVersion: v1
@@ -373,8 +376,6 @@ spec:
 No SWAP support.
 
 ---
-
-# And Now
 
 ```yaml
 # this fragment goes into the kubelet's configuration file
@@ -435,7 +436,7 @@ spec:
 
 ---
 
-# And Now (podFailurePolicy)
+<!-- # And Now (podFailurePolicy) -->
 
 ```yaml
 apiVersion: batch/v1
@@ -464,7 +465,7 @@ spec:
 
 ---
 
-# And Now (jobSuccessPolicy)
+<!-- # And Now (jobSuccessPolicy) -->
 
 ```yaml
 apiVersion: batch/v1
