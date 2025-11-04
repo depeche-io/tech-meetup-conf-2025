@@ -514,10 +514,10 @@ So your jobs don't need to be idempotent.
 ---
 
 
-<!-- TODO: link -->
-
 # Thank You!
 
 *Let's bring more workloads on Kubernetes!*
 
 **Questions?**
+
+![bg right:50% width:300](./qrcode.png)
