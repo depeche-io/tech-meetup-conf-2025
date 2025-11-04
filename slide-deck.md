@@ -307,11 +307,14 @@ Or bulky:
 ```yaml
 apiVersion: v1
 kind: Pod
+metadata:
+  name: my-favourite-app
 spec:
   initContainers:
     # download the dependency here
   containers:
   - name: my-fancy-model-including-app
+    image: myapp
     volumeMounts:
     - name: model-file
       mountPath: /mnt/
@@ -325,6 +328,8 @@ spec:
 ```yaml
 apiVersion: v1
 kind: Pod
+metadata:
+  name: my-favourite-app
 spec:
   volumes:
   - name: model-image
@@ -333,8 +338,9 @@ spec:
       pullPolicy: IfNotPresent
   containers:
   - name: my-fancy-model-including-app
+    image: my-fancy-app-without-model
     volumeMounts:
-    - name: model-file
+    - name: model-image
       mountPath: /mnt/
       readOnly: true
 ```
@@ -378,6 +384,8 @@ memorySwap:
 # Only non-high-priority Pods under the Burstable QoS tier are permitted to use swap.
 apiVersion: v1
 kind: Pod
+metadata:
+  name: my-app
 spec:
   containers:
   - name: java-app
@@ -413,6 +421,8 @@ spec:
 ```yaml
 apiVersion: batch/v1
 kind: Job
+metadata:
+  name: my-favourite-job
 spec:
   backoffLimit: 3  # Retry 3 times, that's it
   template:
@@ -430,8 +440,16 @@ spec:
 ```yaml
 apiVersion: batch/v1
 kind: Job
+metadata:
+  name: my-other-job
 spec:
   backoffLimit: 5
+  template:
+    spec:
+      containers:
+      - name: batch-processor
+        image: batch-app:v1
+      restartPolicy: Never # required if using .podFailurePolicy
   podFailurePolicy:
     rules:
     - action: FailJob
@@ -451,8 +469,19 @@ spec:
 ```yaml
 apiVersion: batch/v1
 kind: Job
+metadata:
+  name: my-matrix-job
 spec:
   backoffLimit: 5
+  template:
+    spec:
+      containers:
+      - name: batch-processor
+        image: batch-app:v1
+      restartPolicy: Never
+  parallelism: 10
+  completions: 10
+  completionMode: Indexed
   successPolicy:
     rules:
     - succeededIndexes: "0-9"
@@ -488,6 +517,6 @@ So your jobs don't need to be idempotent.
 
 # Thank You!
 
-*Let's bring more workloads to Kubernetes!*
+*Let's bring more workloads on Kubernetes!*
 
 **Questions?**
