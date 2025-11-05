@@ -4,7 +4,7 @@ theme: gaia
 #header: The Gems of Kubernetes' Latest Features
 #footer: David Pech @ Wrike | TechMeetup Conference 2025
 class: [gaia]
-#paginate: true
+paginate: false
 lang: en-US
 transition: none
 style: |
@@ -12,6 +12,7 @@ style: |
     align-content: start;
   }
   section::after {
+    color: lightblue;
     content: attr(data-marpit-pagination) ' / ' attr(data-marpit-pagination-total);
   }
 
@@ -25,6 +26,8 @@ David Pech
 ![bg right:50% w:600](./intro.png)
 
 ---
+
+<!-- paginate: true -->
 
 # David Pech
 
@@ -500,6 +503,49 @@ spec:
 - **Batch Analytics**: Partial success scenarios
 
 So your jobs don't need to be idempotent.
+
+---
+
+# Dynamic Resource Allocation
+
+**Smart allocation of node resources**
+- Status: **Stable** in Kubernetes 1.34
+- Multiple KEPs
+
+---
+
+```yaml
+apiVersion: resource.k8s.io/v1
+kind: ResourceSlice
+# ...
+spec:
+  devices:
+  - attributes:
+      type:
+        string: gpu
+    capacity:
+      memory:
+        value: 64Gi
+    name: gpu-0
+  - attributes:
+      type:
+        string: gpu
+    capacity:
+      memory:
+        value: 64Gi
+    name: gpu-1
+  driver: driver.example.com
+  nodeName: cluster-1-node-1
+```
+
+---
+
+# Why Dynamic Resource Allocation Matters
+
+**Use Cases:**
+- **ML**: Assigning accelerator / graphics cards
+- **SR-IOV**: Slicing Network Interface (NICs) cards
+- **NVMe Slicing**
 
 ---
 
